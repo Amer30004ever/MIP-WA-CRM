@@ -1,0 +1,122 @@
+// MaVoid WhatsApp CRM — Prisma Schema
+// Generated: Phase 1 Scaffold
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         Role     @default(AGENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  conversations Conversation[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+// ─────────────────────────────────────────────
+// WHATSAPP CONTACTS
+// ─────────────────────────────────────────────
+model WhatsAppContact {
+  id          String   @id @default(uuid())
+  phone       String   @unique   // e.g. "+966501234567"
+  name        String?
+  profilePic  String?
+  isBlocked   Boolean  @default(false)
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  conversations Conversation[]
+
+  @@map("whatsapp_contacts")
+}
+
+// ─────────────────────────────────────────────
+// CONVERSATIONS
+// ─────────────────────────────────────────────
+model Conversation {
+  id          String             @id @default(uuid())
+  status      ConversationStatus @default(OPEN)
+  assignedTo  User?              @relation(fields: [assignedToId], references: [id])
+  assignedToId String?
+  contact     WhatsAppContact    @relation(fields: [contactId], references: [id])
+  contactId   String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  messages    Message[]
+
+  @@map("conversations")
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+// ─────────────────────────────────────────────
+// MESSAGES
+// ─────────────────────────────────────────────
+model Message {
+  id             String      @id @default(uuid())
+  waMessageId    String?     @unique  // WhatsApp message ID
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  direction      Direction
+  type           MessageType @default(TEXT)
+  content        String
+  mediaUrl       String?
+  timestamp      DateTime    @default(now())
+  isRead         Boolean     @default(false)
+
+  @@map("messages")
+}
+
+enum Direction {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  TEMPLATE
+}
+
+// ─────────────────────────────────────────────
+// WEBHOOK LOGS
+// ─────────────────────────────────────────────
+model WebhookLog {
+  id          String   @id @default(uuid())
+  source      String   @default("whatsapp")
+  payload     Json
+  processed   Boolean  @default(false)
+  error       String?
+  receivedAt  DateTime @default(now())
+
+  @@map("webhook_logs")
+}
