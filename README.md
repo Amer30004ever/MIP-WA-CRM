@@ -348,6 +348,7 @@ See `.env.example` for complete list.
 > For local development, use `ngrok http 3001` (see Troubleshooting section).
 > For production, ensure your VPS has SSL configured (see HTTPS section above).
 
+
 ---
 
 ## 📱 Testing WhatsApp Webhook Locally
@@ -356,56 +357,82 @@ WhatsApp cannot send webhooks to `localhost:3001`. You need a public HTTPS URL.
 
 ### Option 1: Ngrok (Easiest for Testing)
 
+**1. Install ngrok**
 ```bash
-# Install ngrok
-# Mac: brew install ngrok
-# Download: https://ngrok.com/download
+# Mac
+brew install ngrok
 
-# Start your backend locally
+# Download from: https://ngrok.com/download
+```
+
+**2. Start your backend locally**
 ```bash
 cd backend && npm run start:dev
 ```
-# In another terminal, expose it
+
+**3. In another terminal, expose your local server**
 ```bash
 ngrok http 3001
 ```
-# Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
-# Configure webhook in Meta Developer Portal:
 
-# Callback URL: https://abc123.ngrok.io/webhooks/whatsapp
+**4. Copy the HTTPS URL** (e.g., `https://abc123.ngrok.io`)
 
-# Verify Token: The value you set in WHATSAPP_VERIFY_TOKEN
+**5. Configure webhook in Meta Developer Portal**
+- **Callback URL:** `https://abc123.ngrok.io/webhooks/whatsapp`
+- **Verify Token:** The value you set in `WHATSAPP_VERIFY_TOKEN`
 
-# Meta sends a GET request:
-
+**How verification works:**
+Meta sends a GET request to your webhook:
 ```text
 GET /webhooks/whatsapp?hub.mode=subscribe&hub.challenge=123456&hub.verify_token=your_token
 ```
-#Your backend must return: The raw hub.challenge value (123456) as plain text.
 
-# Success: Meta shows "Verified" in the portal.
+Your backend must return the raw `hub.challenge` value (123456) as plain text.
+
+**Success:** Meta shows "Verified" in the developer portal.
+
+---
+
+### Option 2: Cloudflare Tunnel (Free, More Stable)
+
+**1. Install cloudflared**
+```bash
+# Mac
+brew install cloudflared
 ```
 
-Option 2: Cloudflare Tunnel (Free, More Stable)
-
+**2. Run the tunnel**
 ```bash
-# Install cloudflared
-# Mac: brew install cloudflared
-
-# Run tunnel
 cloudflared tunnel --url http://localhost:3001
-
-# Use the provided https://xxxx.trycloudflare.com URL
 ```
 
-Verify Webhook Works
+**3. Use the provided URL**
+```
+https://xxxx.trycloudflare.com
+```
 
+---
+
+### Verify Webhook Works
+
+**Test the verification endpoint manually:**
 ```bash
-# Meta will send a GET request to verify
 curl "https://your-ngrok-url/webhooks/whatsapp?hub.mode=subscribe&hub.challenge=123&hub.verify_token=your_token"
-
-# Should return the challenge number
 ```
+
+**Expected response:** The challenge number (e.g., `123`)
+
+---
+
+### Troubleshooting Tips
+
+| Issue | Solution |
+|-------|----------|
+| Webhook verification fails | Check `WHATSAPP_VERIFY_TOKEN` matches exactly |
+| Connection refused | Ensure backend is running on port 3001 |
+| SSL certificate error | Use HTTPS URL from ngrok/cloudflared |
+| Timeout | Check firewall settings |
+
 
 ---
 
