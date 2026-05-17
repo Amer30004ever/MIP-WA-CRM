@@ -60,8 +60,11 @@ model Conversation {
   assignedToId String?
   contact     WhatsAppContact    @relation(fields: [contactId], references: [id])
   contactId   String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  unreadCount        Int                @default(0)
+  lastMessageAt      DateTime           @default(now())
+  lastMessagePreview String?
 
   messages    Message[]
 

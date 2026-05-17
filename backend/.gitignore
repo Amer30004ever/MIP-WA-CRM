@@ -3,6 +3,12 @@ dist/
 .env
 *.log
 
+# Graphify
+.graphifyignore
+graphify-out/
+files/
+.agents/
+
 # Prisma
 prisma/migrations/*.sql.bak
 
