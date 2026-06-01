@@ -7,7 +7,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { Role } from '@prisma/client';
+import { $Enums } from '@prisma/client';
 
 export class RegisterDto {
   @ApiProperty({ example: 'admin@mavoid.com', description: 'User email address' })
@@ -24,8 +24,8 @@ export class RegisterDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ enum: Role, example: Role.AGENT, description: 'User role (defaults to AGENT)' })
+  @ApiPropertyOptional({ enum: $Enums.Role, example: $Enums.Role.AGENT, description: 'User role (defaults to AGENT)' })
   @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
+  @IsEnum($Enums.Role)
+  role?: $Enums.Role;
 }

@@ -1,6 +1,6 @@
 /** Base API URL - reads from env or defaults to localhost */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api/v1";
+const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+export const API_BASE_URL = rawUrl.endsWith("/api/v1") ? rawUrl : `${rawUrl}/api/v1`;
 
 export const ROUTES = {
   login: "/login",

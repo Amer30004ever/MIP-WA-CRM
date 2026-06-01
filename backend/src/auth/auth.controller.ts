@@ -96,6 +96,14 @@ export class AuthController {
   async me(@CurrentUser() user: { id: string }) {
     return this.authService.getMe(user.id);
   }
+
+  @Get('users')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get list of active team users' })
+  async findAll() {
+    return this.authService.findAll();
+  }
+
 }
 
 

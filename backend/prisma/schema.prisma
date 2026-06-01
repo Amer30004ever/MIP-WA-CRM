@@ -1,5 +1,5 @@
 // MaVoid WhatsApp CRM — Prisma Schema
-// Generated: Phase 1 Scaffold
+// Generated: Phase 1 Scaffold & Core CRM Expansion
 
 generator client {
   provider = "prisma-client-js"
@@ -23,6 +23,11 @@ model User {
   updatedAt    DateTime @updatedAt
 
   conversations Conversation[]
+  leads         Lead[]
+  deals         Deal[]
+  tasks         Task[]
+  notes         Note[]
+  crmLogs       CrmLog[]
 
   @@map("users")
 }
@@ -46,6 +51,8 @@ model WhatsAppContact {
   updatedAt   DateTime @updatedAt
 
   conversations Conversation[]
+  contact       Contact?
+  leads         Lead[]
 
   @@map("whatsapp_contacts")
 }
@@ -67,6 +74,7 @@ model Conversation {
   lastMessagePreview String?
 
   messages    Message[]
+  tasks       Task[]
 
   @@map("conversations")
 }
@@ -122,4 +130,172 @@ model WebhookLog {
   receivedAt  DateTime @default(now())
 
   @@map("webhook_logs")
+}
+
+// ─────────────────────────────────────────────
+// COMPANIES
+// ─────────────────────────────────────────────
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  domain    String?
+  industry  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts Contact[]
+  deals    Deal[]
+  notes    Note[]
+
+  @@map("companies")
+}
+
+// ─────────────────────────────────────────────
+// CRM CONTACTS
+// ─────────────────────────────────────────────
+model Contact {
+  id               String           @id @default(uuid())
+  name             String
+  email            String?
+  phone            String?
+  jobTitle         String?
+  companyId        String?
+  company          Company?         @relation(fields: [companyId], references: [id])
+  whatsAppContactId String?         @unique
+  whatsAppContact  WhatsAppContact? @relation(fields: [whatsAppContactId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  deals Deal[]
+  notes Note[]
+
+  @@map("contacts")
+}
+
+// ─────────────────────────────────────────────
+// LEADS
+// ─────────────────────────────────────────────
+model Lead {
+  id                String           @id @default(uuid())
+  title             String
+  status            LeadStatus       @default(NEW)
+  value             Float?
+  whatsAppContactId String?
+  whatsAppContact   WhatsAppContact? @relation(fields: [whatsAppContactId], references: [id])
+  assignedToId      String?
+  assignedTo        User?            @relation(fields: [assignedToId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  tasks Task[]
+  notes Note[]
+
+  @@map("leads")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  LOST
+}
+
+// ─────────────────────────────────────────────
+// DEALS
+// ─────────────────────────────────────────────
+model Deal {
+  id           String    @id @default(uuid())
+  title        String
+  value        Float
+  stage        DealStage @default(NEW)
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id])
+  contactId    String?
+  contact      Contact?  @relation(fields: [contactId], references: [id])
+  assignedToId String?
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tasks Task[]
+  notes Note[]
+
+  @@map("deals")
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+// ─────────────────────────────────────────────
+// TASKS
+// ─────────────────────────────────────────────
+model Task {
+  id             String       @id @default(uuid())
+  title          String
+  description    String?
+  dueDate        DateTime?
+  status         TaskStatus   @default(TODO)
+  assignedToId   String?
+  assignedTo     User?        @relation(fields: [assignedToId], references: [id])
+  leadId         String?
+  lead           Lead?        @relation(fields: [leadId], references: [id])
+  dealId         String?
+  deal           Deal?        @relation(fields: [dealId], references: [id])
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+// ─────────────────────────────────────────────
+// NOTES
+// ─────────────────────────────────────────────
+model Note {
+  id        String   @id @default(uuid())
+  content   String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id])
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notes")
+}
+
+// ─────────────────────────────────────────────
+// CRM AUDIT LOGS
+// ─────────────────────────────────────────────
+model CrmLog {
+  id         String   @id @default(uuid())
+  action     String   // e.g. "CREATE", "UPDATE", "DELETE", "STAGE_CHANGE"
+  entityType String   // e.g. "LEAD", "DEAL", "TASK", "CONTACT", "COMPANY"
+  entityId   String
+  details    Json?    // Generic details or JSON payload
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@map("crm_logs")
 }

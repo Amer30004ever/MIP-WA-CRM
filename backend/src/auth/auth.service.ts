@@ -105,6 +105,20 @@ export class AuthService {
     });
   }
 
+  async findAll() {
+    return this.prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
   private signToken(userId: string, email: string, role: string): string {

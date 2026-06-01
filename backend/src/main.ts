@@ -20,10 +20,30 @@ async function bootstrap() {
     }),
   );
 
-  // CORS (adjust origins for production)
+  // CORS - Allow multiple origins for development
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+  ].filter(Boolean);
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is allowed
+      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        logger.warn(`Blocked CORS request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // ── Swagger / OpenAPI ──────────────────────────────────────────────────────
@@ -54,7 +74,7 @@ async function bootstrap() {
   });
   // ──────────────────────────────────────────────────────────────────────────
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 3001;
   await app.listen(port);
   logger.log(`🚀 MaVoid CRM API running on http://localhost:${port}/api/v1`);
   logger.log(`📖 Swagger docs available at http://localhost:${port}/api/docs`);

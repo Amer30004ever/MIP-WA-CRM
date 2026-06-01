@@ -4,6 +4,14 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { ConversationsModule } from './conversations/conversations.module';
+import { CompaniesModule } from './companies/companies.module';
+import { ContactsModule } from './contacts/contacts.module';
+import { LeadsModule } from './leads/leads.module';
+import { DealsModule } from './deals/deals.module';
+import { TasksModule } from './tasks/tasks.module';
+import { NotesModule } from './notes/notes.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -19,6 +27,14 @@ import { AppController } from './app.controller';
     // Feature modules
     AuthModule,
     WebhookModule,
+    ConversationsModule,
+    CompaniesModule,
+    ContactsModule,
+    LeadsModule,
+    DealsModule,
+    TasksModule,
+    NotesModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
@@ -29,4 +45,5 @@ import { AppController } from './app.controller';
   ],
 })
 export class AppModule {}
+
 

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageType, Prisma } from '@prisma/client';
+import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -19,14 +19,14 @@ export class WebhookService {
     });
 
     try {
-      // Extract messages from WhatsApp payload
+      // Extract messages and statuses from WhatsApp payload
       const entry = payload?.entry?.[0];
       const changes = entry?.changes?.[0];
       const value = changes?.value;
 
-      if (!value?.messages) {
-        this.logger.log('No messages in payload — status update or other event');
-        // Still mark as processed even if it's not a message event
+      if (!value?.messages && !value?.statuses) {
+        this.logger.log('No messages or statuses in payload — other event');
+        // Still mark as processed even if it's not a message/status event
         await this.prisma.webhookLog.update({
           where: { id: webhookLog.id },
           data: { processed: true },
@@ -34,9 +34,17 @@ export class WebhookService {
         return;
       }
 
-      for (const message of value.messages) {
-        this.logger.log(`Processing message from ${message.from} — type: ${message.type}`);
-        await this.handleIncomingMessage(message, value.contacts?.[0]);
+      if (value?.messages) {
+        for (const message of value.messages) {
+          this.logger.log(`Processing message from ${message.from} — type: ${message.type}`);
+          await this.handleIncomingMessage(message, value.contacts?.[0]);
+        }
+      }
+
+      if (value?.statuses) {
+        for (const status of value.statuses) {
+          await this.handleStatusUpdate(status);
+        }
       }
 
       await this.prisma.webhookLog.update({
@@ -121,15 +129,47 @@ export class WebhookService {
     }
   }
 
-  private mapMessageType(waType: string): MessageType {
-    const typeMap: Record<string, MessageType> = {
-      text: MessageType.TEXT,
-      image: MessageType.IMAGE,
-      audio: MessageType.AUDIO,
-      video: MessageType.VIDEO,
-      document: MessageType.DOCUMENT,
-      template: MessageType.TEMPLATE,
+  private async handleStatusUpdate(status: any): Promise<void> {
+    const waMessageId = status.id;
+    const statusState = status.status; // 'sent' | 'delivered' | 'read' | 'failed'
+
+    this.logger.log(`Processing status update for message ID: ${waMessageId} — status: ${statusState}`);
+
+    // Find the message in our DB by waMessageId
+    const message = await this.prisma.message.findUnique({
+      where: { waMessageId },
+    });
+
+    if (!message) {
+      this.logger.warn(`⚠️ Message with waMessageId ${waMessageId} not found in DB`);
+      return;
+    }
+
+    if (statusState === 'read') {
+      // Mark as read in our schema
+      await this.prisma.message.update({
+        where: { id: message.id },
+        data: { isRead: true },
+      });
+      this.logger.log(`✅ Message ${message.id} marked as read`);
+    } else if (statusState === 'failed') {
+      const errorMsg = status.errors?.[0]?.message || 'Unknown Meta API error';
+      const errorCode = status.errors?.[0]?.code || 'N/A';
+      this.logger.error(`❌ Message ${message.id} failed delivery. Error: ${errorMsg} (Code: ${errorCode})`);
+    } else {
+      this.logger.log(`ℹ️ Message ${message.id} status transitioned to: ${statusState}`);
+    }
+  }
+
+  private mapMessageType(waType: string): $Enums.MessageType {
+    const typeMap: Record<string, $Enums.MessageType> = {
+      text: $Enums.MessageType.TEXT,
+      image: $Enums.MessageType.IMAGE,
+      audio: $Enums.MessageType.AUDIO,
+      video: $Enums.MessageType.VIDEO,
+      document: $Enums.MessageType.DOCUMENT,
+      template: $Enums.MessageType.TEMPLATE,
     };
-    return typeMap[waType] ?? MessageType.TEXT;
+    return typeMap[waType] ?? $Enums.MessageType.TEXT;
   }
 }

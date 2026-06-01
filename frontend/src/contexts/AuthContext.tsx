@@ -49,13 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post<{ access_token: string; user: User }>(
+    const res = await api.post<{ token: string; user: User }>(
       "/auth/login",
       { email, password }
     );
-    const { access_token, user: me } = res.data;
-    localStorage.setItem("mavoid_token", access_token);
-    setToken(access_token);
+    const { token: jwtToken, user: me } = res.data;
+    localStorage.setItem("mavoid_token", jwtToken);
+    setToken(jwtToken);
     setUser(me);
   };
 
