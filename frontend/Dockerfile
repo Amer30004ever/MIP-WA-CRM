@@ -12,6 +12,10 @@ RUN npm ci --legacy-peer-deps
 # Copy source code
 COPY . .
 
+# API base URL is baked into the client bundle at build time
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build the Next.js application
 RUN npm run build
 

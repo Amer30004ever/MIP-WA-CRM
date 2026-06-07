@@ -5,19 +5,19 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
 
 # Install ALL dependencies (including dev dependencies for build)
 RUN npm ci --include=dev
 
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Copy source code
+# Copy source code and prisma schema
 COPY . .
 
-# Build the NestJS application
-RUN npm run build
+# Generate Prisma Client (after copying source code to use updated schema)
+RUN npx prisma generate
+
+# Build the NestJS application (tsc emits dist/main.js)
+RUN rm -rf dist tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo && npm run build
+RUN test -f dist/main.js || (echo "Build failed: dist/main.js missing" && ls -la dist && exit 1)
 
 # Stage 2: Production image
 FROM node:20-alpine AS runner
@@ -26,7 +26,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache dumb-init
+# Install dumb-init and postgres client
+RUN apk add --no-cache dumb-init postgresql-client
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs

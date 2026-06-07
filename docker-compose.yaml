@@ -1,6 +1,4 @@
-
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: mavoid_postgres
@@ -9,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-mavoid_crm}
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,21 +19,6 @@ services:
       - mavoid_network
     restart: unless-stopped
 
-  # PostgreSQL Test Database (local testing only)
-  postgres_test:
-    image: postgres:15-alpine
-    container_name: mavoid_postgres_test
-    environment:
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_password
-      POSTGRES_DB: test_db
-    ports:
-      - "5433:5432"
-    tmpfs: /var/lib/postgresql/data
-    networks:
-      - mavoid_network
-
-  # Backend API Service
   backend:
     build:
       context: ./backend
@@ -45,39 +28,48 @@ services:
       PORT: 3001
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-mavoid_crm}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-mavoid_crm}
+      POSTGRES_HOST: postgres
       JWT_SECRET: ${JWT_SECRET:-dev_secret_key_for_local_development_only_32_chars}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
-      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
-      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
-      WHATSAPP_WABA_ID: ${WHATSAPP_WABA_ID}
-      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_WABA_ID: ${WHATSAPP_WABA_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@mavoid.dev}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Mav0id2026!}
+      ADMIN_NAME: ${ADMIN_NAME:-MaVoid Admin}
     ports:
       - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
+    working_dir: /app
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
       interval: 30s
       timeout: 3s
-      start_period: 10s
+      start_period: 60s
       retries: 3
     networks:
       - mavoid_network
     restart: unless-stopped
 
-  # Frontend Service
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
     container_name: mavoid_frontend
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
     ports:
       - "3000:3000"
     depends_on:
